@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {summary,validData,escapeHtml} from './finance.js';
+import {summary,validData,escapeHtml,clearSamples} from './finance.js';
 const data={version:1,categories:['Food','Income'],budgets:{Food:200},transactions:[{id:'1',name:'Salary',amount:3000,type:'income',category:'Income',date:'2026-10-01'},{id:'2',name:'Food',amount:150,type:'expense',category:'Food',date:'2026-10-03'},{id:'3',name:'Other month',amount:500,type:'expense',category:'Food',date:'2026-09-03'}],bills:[{id:'4',name:'Rent',amount:1000,date:'2026-10-01',paid:true},{id:'5',name:'Internet',amount:50,date:'2026-10-20',paid:false}]};
 test('available cash reserves unpaid bills and excludes other months',()=>{assert.deepEqual({...summary(data,'2026-10'),bills:[]},{income:3000,spending:150,paid:1000,unpaid:50,available:1800,bills:[]});});
 test('paying a bill does not double deduct cash',()=>{const next=structuredClone(data);next.bills[1].paid=true;assert.equal(summary(next,'2026-10').available,1800);assert.equal(summary(next,'2026-10').unpaid,0);});
@@ -10,3 +10,11 @@ test('reject malformed financial backups',()=>{for(const mutate of [d=>d.transac
 
 test('escape user-controlled text and attribute delimiters',()=>{assert.equal(escapeHtml('<img src=x onerror="alert(1)">'), '&lt;img src=x onerror=&quot;alert(1)&quot;&gt;');assert.equal(escapeHtml("A&B's"),'A&amp;B&#39;s');});
 test('reject category names that collide with object internals',()=>{for(const name of ['__proto__','constructor','prototype']){const next=structuredClone(data);next.categories.push(name);assert.equal(validData(next),false);}});
+
+test('clearing samples removes only selected records and budgets without mutating original',()=>{
+ const original=structuredClone(data);original.transactions[0].isSample=true;original.sampleBudgets={Food:200};
+ const snapshot=structuredClone(original);
+ const result=clearSamples(original,{transactions:['1'],bills:['5'],budgets:['Food']});
+ assert.deepEqual(result.transactions.map(t=>t.id),['2','3']);assert.deepEqual(result.bills.map(b=>b.id),['4']);assert.deepEqual(result.budgets,{});assert.deepEqual(result.categories,original.categories);assert.equal(result.sample,false);assert.deepEqual(original,snapshot);assert.ok(validData(result));
+});
+test('empty sample selection preserves every financial record and budget',()=>{const result=clearSamples(data,{transactions:[],bills:[],budgets:[]});assert.deepEqual(result.transactions,data.transactions);assert.deepEqual(result.bills,data.bills);assert.deepEqual(result.budgets,data.budgets);});

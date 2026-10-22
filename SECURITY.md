@@ -46,3 +46,7 @@ Browser test data and downloads were kept in temporary test storage outside the 
 6. The development server is intended for trusted networks only. Use the HTTPS GitHub Pages address for ordinary hosted use.
 
 This is a focused source/history review and functional privacy check, not an independent penetration test or a guarantee against every future vulnerability.
+
+## iPhone usability update validation
+
+The phone update retains the same storage key and network-blocking policy. Loading a saved workspace does not automatically write or clear its data. Clearing examples requires reviewing a selection and confirming it. Older ambiguous examples default to unselected. Nine automated tests and production/mobile Chromium checks passed, including keeping custom financial entries and budgets, canceling destructive actions, clearing an untouched sample workspace, and zero financial network requests. These are automated browser checks at phone viewport sizes, not a physical iPhone/Safari certification.

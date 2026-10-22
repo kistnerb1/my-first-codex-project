@@ -12,3 +12,13 @@ function validEntry(t){return t&&typeof t.id==='string'&&typeof t.name==='string
 
 // Escape all user-provided text before inserting it into HTML or attributes.
 export function escapeHtml(value){return String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+// Metadata marks generated examples; unmarked older records are never deleted by default.
+export function clearSamples(data,selection){
+ const next=structuredClone(data);
+ next.transactions=next.transactions.filter(t=>!selection.transactions.includes(t.id));
+ next.bills=next.bills.filter(b=>!selection.bills.includes(b.id));
+ for(const category of selection.budgets){delete next.budgets[category];if(next.sampleBudgets)delete next.sampleBudgets[category];}
+ next.sample=false;
+ return next;
+}

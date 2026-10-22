@@ -18,7 +18,7 @@ Keep the Windows server running, connect both devices to the same trusted Wi-Fi,
 
 ## Using your own numbers
 
-Sample entries use the month when the application first opens. Edit or delete them and add your real income, transactions, and bills; select another month to see or add entries there. Use **Edit budgets** to change category limits and add categories. Category budgets repeat monthly. Use **All transactions** to filter income or expenses. Click a bill's paid/unpaid badge to change its status, or use its edit/delete buttons.
+Sample entries use the month when the application first opens. Edit or delete them and add your real income, transactions, and bills; select another month to see or add entries there. Use **Edit budgets** to change category limits and add categories. Category budgets repeat monthly. Use **Add income** for income, **Add transaction** for everyday expenses, and **Add bill** for bills. Use **All transactions** to filter income or expenses. Tap a transaction anywhere (or its name button) to open the editor; **Delete entry** asks for confirmation. Click a bill's paid/unpaid badge to change its status, or use its edit/delete buttons.
 
 Available cash = recorded monthly income − everyday expenses − paid bills − unpaid bills. This reserves money for unpaid bills. Record a bill only in Bills & payments, not again as an expense. This is a monthly cash flow estimate: it does not include bank balances, opening balances, or money carried over from other months. Enter income when appropriate for your own monthly tracking. The what-if calculator changes the estimate only; a negative adjustment models savings and a positive adjustment models increased spending or payments. Currency is USD.
 
@@ -63,3 +63,11 @@ Run `npm test` and `npm run build` from the project folder. There are no package
 ## Privacy and security
 
 See [SECURITY.md](SECURITY.md) for the review, fixes, test evidence, and remaining risks. Financial records and backups stay in the browser; ordinary website hosting requests still reach GitHub. Browser storage and JSON backups are unencrypted, and GitHub Pages projects on the same username domain share an origin. Never commit financial records or backups.
+
+## iPhone update: clear examples safely
+
+Tap **Clear sample data**, review the selected examples, then tap **Clear selected samples** and confirm. Cancel at either step to keep everything. The update does not delete records or write migrations automatically when you open it. Categories remain available after clearing, and monthly totals become zero when there are no remaining entries.
+
+New samples carry a per-entry marker. Editing a sample transaction/bill or changing a sample budget treats the changed item as your own. Older mixed workspaces did not mark individual samples, so possible older examples are unchecked by default: select them only if you know they are fictional. Custom entries are not automatically selected. Export a backup before any bulk removal if unsure.
+
+On phones, transactions appear as tappable cards, controls have at least 44-pixel touch heights, and input text is sized to avoid iPhone focus zoom. All records stay in the same browser storage key, and backups continue to be processed locally.
