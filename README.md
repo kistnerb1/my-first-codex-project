@@ -24,7 +24,7 @@ Available cash = recorded monthly income − everyday expenses − paid bills �
 
 ## Storage and backups
 
-Financial data is saved in this browser's localStorage. It is not sent to a server. It is not encrypted; anyone with access to your browser profile may access it. Private browsing, clearing site data, or switching browsers/addresses can remove or separate saved data. The application requires JavaScript and a local or hosted web server; don't open index.html with a file:// URL. Optional Google Fonts load online; system fonts work if unavailable.
+Financial data is saved in this browser's localStorage. It is not sent to a server. It is not encrypted; anyone with access to your browser profile may access it. Private browsing, clearing site data, or switching browsers/addresses can remove or separate saved data. The application requires JavaScript and a local or hosted web server; don't open index.html with a file:// URL. The app uses system fonts and has no third-party font, analytics, or tracking requests.
 
 Use **Export backup** regularly, especially before replacing data. Store the JSON file privately. **Import data** validates a backup and asks before replacing your current data. Export on one device and import on another to transfer numbers; devices do not automatically sync. Localhost, a Wi-Fi address, and GitHub Pages each have separate browser storage. Never commit financial backups to GitHub.
 
@@ -59,3 +59,7 @@ Your browser data is separate at the Pages address. To move existing numbers the
 ## Production build
 
 Run `npm test` and `npm run build` from the project folder. There are no packages to install. `dist/` contains only deployable static files. Do not commit it: GitHub Actions rebuilds it. The Node.js server is for development only; GitHub Pages serves the production files directly over HTTPS.
+
+## Privacy and security
+
+See [SECURITY.md](SECURITY.md) for the review, fixes, test evidence, and remaining risks. Financial records and backups stay in the browser; ordinary website hosting requests still reach GitHub. Browser storage and JSON backups are unencrypted, and GitHub Pages projects on the same username domain share an origin. Never commit financial records or backups.

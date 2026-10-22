@@ -3,3 +3,12 @@ my-money-backup-*.json
 *.log
 .DS_Store
 dist/
+# Private configuration and data must stay outside Git.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+backups/
+private-data/
+my-money-backup-*.json*
