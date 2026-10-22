@@ -1,0 +1,12 @@
+{
+  "name": "my-money-command-center",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "test": "node --test",
+    "build": "node scripts/build.mjs"
+  },
+  "type": "module"
+}
