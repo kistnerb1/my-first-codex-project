@@ -1,73 +1,61 @@
 # My Money Command Center
 
-A free, responsive personal finance dashboard for today's money. No signup, bank connection, subscription, or backend database. Includes editable income and expense transactions, bills with payment status, custom spending categories and budgets, cash flow charts, a what-if calculator, and JSON backups.
+A phone-friendly personal finance dashboard for income, expenses, bills, budgets, available cash, and what-if calculations. Includes editable transactions, confirmed sample clearing, and JSON backups.
 
-## Preview on Windows
+**Supabase sync upgrade is a review draft. It has NOT been published.** This version is being saved to `supabase-review`; `main` and the existing GitHub Pages site remain unchanged. Do not deploy until the setup and security tests have been reviewed and approved.
 
-Install the free current Node.js LTS release from https://nodejs.org. Open this project folder in PowerShell, then run:
+## Start on Windows
+
+Install Node.js LTS, then open PowerShell in this project folder:
 
 ```powershell
+npm ci
+npm test
 npm start
 ```
 
-Open **http://localhost:5173** in Edge, Chrome, or Firefox. No `npm install` is required: the application and server use no third-party packages. Stop the server with Ctrl+C. Run calculation and backup validation tests with `npm test`.
+Open `http://localhost:5173` in Chrome. Stop with Ctrl+C. The runtime has no external JavaScript packages; pinned development packages are used for security/browser tests. `npm run build` creates the static `dist/` directory for GitHub Pages at `/my-first-codex-project/`.
 
-## Preview on iPhone
+## Local mode or private cloud sync
 
-Keep the Windows server running, connect both devices to the same trusted Wi-Fi, and run `ipconfig` in PowerShell to find your computer's Wi-Fi IPv4 address. In Safari, open `http://YOUR-PC-IP:5173`. If Windows asks, allow Node.js on your private network. The computer must remain awake; do not expose this development server to the public Internet. Alternatively, use the free GitHub Pages deployment below to access the app without your computer running.
+Local mode keeps records in this browser with no financial uploads. **Optional cloud mode** uses your Supabase project for verified email-code authentication and a per-user RLS-protected database. It sends financial records over HTTPS to Supabase, not GitHub. There are no ads, analytics, bank connections, or third-party font requests.
 
-## Using your own numbers
+Follow [SUPABASE_SETUP.md](SUPABASE_SETUP.md) for the free-tier project setup, email login, safe backup-and-confirm migration, sync indicators, and required live tests. See [SUPABASE_SECURITY_REVIEW.md](SUPABASE_SECURITY_REVIEW.md) for exactly what has passed and what is still pending.
 
-Sample entries use the month when the application first opens. Edit or delete them and add your real income, transactions, and bills; select another month to see or add entries there. Use **Edit budgets** to change category limits and add categories. Category budgets repeat monthly. Use **Add income** for income, **Add transaction** for everyday expenses, and **Add bill** for bills. Use **All transactions** to filter income or expenses. Tap a transaction anywhere (or its name button) to open the editor; **Delete entry** asks for confirmation. Click a bill's paid/unpaid badge to change its status, or use its edit/delete buttons.
+Your original local browser workspace is kept separately from cloud account caches. Signing in never migrates local data automatically. Existing browser records are not erased by this update. Migration requires downloading/checking a backup and confirming the cloud account. Signing out restores the original local workspace. Unsynced account changes remain in a user-specific device cache.
 
-Available cash = recorded monthly income − everyday expenses − paid bills − unpaid bills. This reserves money for unpaid bills. Record a bill only in Bills & payments, not again as an expense. This is a monthly cash flow estimate: it does not include bank balances, opening balances, or money carried over from other months. Enter income when appropriate for your own monthly tracking. The what-if calculator changes the estimate only; a negative adjustment models savings and a positive adjustment models increased spending or payments. Currency is USD.
+Never put financial backups, passwords, SMTP credentials, Supabase secret/service-role keys, or session tokens in GitHub. The app accepts only a public publishable/anon key. GitHub Actions deploys application files, not users' records. Downloaded JSON and browser caches are unencrypted; keep your devices and backups private. Any future change to deployed code or another app on the same GitHub Pages origin may affect browser privacy.
 
-## Storage and backups
+## Everyday use
 
-Financial data is saved in this browser's localStorage. It is not sent to a server. It is not encrypted; anyone with access to your browser profile may access it. Private browsing, clearing site data, or switching browsers/addresses can remove or separate saved data. The application requires JavaScript and a local or hosted web server; don't open index.html with a file:// URL. The app uses system fonts and has no third-party font, analytics, or tracking requests.
+Use **Add income**, **Add transaction**, and **Add bill** for your own numbers. Tap a transaction to edit or delete it. **Edit budgets** sets repeating monthly category limits and adds categories. Paid/unpaid badges update bills. **Clear sample data** reviews examples before confirming; uncertain older samples start unchecked. Editing a sample treats the changed item as your own. **Restore sample data** is available only in local mode and asks before replacing data.
 
-Use **Export backup** regularly, especially before replacing data. Store the JSON file privately. **Import data** validates a backup and asks before replacing your current data. Export on one device and import on another to transfer numbers; devices do not automatically sync. Localhost, a Wi-Fi address, and GitHub Pages each have separate browser storage. Never commit financial backups to GitHub.
+Available cash = recorded monthly income − everyday expenses − paid bills − unpaid bills. Record a bill in Bills & payments only, not again as an expense. This is a monthly cash-flow estimate, not a bank balance: it has no opening balance/carryover. Currency is USD. What-if adjustments change only the estimate.
 
-## Save the project to GitHub
+**Export backup** downloads the current workspace locally. Imports are read locally. In cloud mode use the explicit **Import local data** flow before uploading. Each browser/address has separate original local data. Use backups to move old data from another address, and configure the same Supabase project/email on both devices for cloud sync.
 
-From this existing repository folder:
+## Tests and publication
 
 ```powershell
-git status
-git add index.html style.css app.js finance.js finance.test.js server.mjs package.json README.md .gitignore
-git commit -m "Build My Money Command Center"
-git push origin HEAD:main
+npm test
+npm run build
+npx playwright install chromium
+npm run test:browser
 ```
 
-These commands explicitly update `main` from your current branch. If you prefer a pull request, use `git push -u origin HEAD` and open a pull request on GitHub. Authenticate through Git's normal GitHub sign-in if prompted. Review `git status` first and keep personal backup files out of commits.
+`npm test` runs finance/import tests, auth/HTTP simulations, sync/conflict tests, and real PostgreSQL RLS tests using PGlite with an emulated Supabase auth schema. Browser tests use an intercepted synthetic Supabase HTTP service; they never contact a real project. On cloud Linux, use `MMCC_CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` if a system Chromium is installed. Hosted tests require a disposable project; see the guide before `npm run test:live`.
 
-## Publish your free website (beginner steps)
+Automatic Pages deployment is disabled in this draft. After explicit approval and live security validation, push the reviewed source to GitHub and manually run **Actions → Deploy My Money Command Center → Run workflow → main**, checking **security_review_approved** only after approval. Wait for build/deploy success, then open `https://kistnerb1.github.io/my-first-codex-project/`. No local server is needed for the published site.
 
-The production site is designed for **https://kistnerb1.github.io/my-first-codex-project/**. All stylesheets, scripts, and module imports use relative paths, so they load correctly under `/my-first-codex-project/`. No bank data is uploaded. The workflow uploads only the four application files and `.nojekyll` from `dist/`, never your development server, Git history, or financial backups.
+The earlier local-only privacy report is preserved in [SECURITY.md](SECURITY.md) as history. The Supabase review supersedes its local-only network claims for the optional cloud mode.
 
-1. Open https://github.com/kistnerb1/my-first-codex-project in Chrome.
-2. Click **Settings**, then **Pages** in the left sidebar.
-3. Under **Build and deployment**, change **Source** to **GitHub Actions**. You do not need to choose a branch or paste a workflow: it is already included in `.github/workflows/deploy-pages.yml`.
-4. Click the repository's **Actions** tab. Choose **Deploy My Money Command Center** on the left, then **Run workflow**, select **main**, and click the green **Run workflow** button. If GitHub asks you to enable Actions, enable them for this repository first.
-5. Open the new run and wait for both **build** and **deploy** to show green check marks. This usually takes a few minutes. If a run failed before Pages was enabled, rerun it after step 3.
-6. Open **https://kistnerb1.github.io/my-first-codex-project/** in Chrome. Include the repository name and trailing slash. Bookmark that address; no localhost or running Windows server is needed.
+## Test in your browser with GitHub Codespaces
 
-Later pushes to `main` automatically test, build, and deploy updates. A manual run must use a branch containing the workflow. If the address shows 404, confirm the deployment finished and check **Settings → Pages** for the published address. Free Pages is available for public repositories. Private-repository Pages requires an eligible GitHub plan; if yours is private, use a public source-only repository for free hosting after reviewing what is published.
+1. Open this repository on GitHub and select the **supabase-review** branch.
+2. Click **Code → Codespaces → Create codespace on supabase-review**.
+3. In the browser terminal run `npm ci`, then `npm start`.
+4. Open the **Ports** tab, forward **5173** if needed, keep visibility **Private**, and click **Open in Browser**.
+5. Enter your Supabase project URL and public publishable key in **Connection setup**, then use email-code login. Never enter a secret/service-role key. Use synthetic records until the hosted security checklist passes.
+6. Open the same private forwarded address on iPhone while signed into GitHub. Configure the same Supabase project and log in with the same email. Stop the Codespace when finished to conserve its free allowance.
 
-Your browser data is separate at the Pages address. To move existing numbers there, export from your old copy and import on the published site. Chrome and iPhone Safari keep separate data. Regularly export backups.
-
-## Production build
-
-Run `npm test` and `npm run build` from the project folder. There are no packages to install. `dist/` contains only deployable static files. Do not commit it: GitHub Actions rebuilds it. The Node.js server is for development only; GitHub Pages serves the production files directly over HTTPS.
-
-## Privacy and security
-
-See [SECURITY.md](SECURITY.md) for the review, fixes, test evidence, and remaining risks. Financial records and backups stay in the browser; ordinary website hosting requests still reach GitHub. Browser storage and JSON backups are unencrypted, and GitHub Pages projects on the same username domain share an origin. Never commit financial records or backups.
-
-## iPhone update: clear examples safely
-
-Tap **Clear sample data**, review the selected examples, then tap **Clear selected samples** and confirm. Cancel at either step to keep everything. The update does not delete records or write migrations automatically when you open it. Categories remain available after clearing, and monthly totals become zero when there are no remaining entries.
-
-New samples carry a per-entry marker. Editing a sample transaction/bill or changing a sample budget treats the changed item as your own. Older mixed workspaces did not mark individual samples, so possible older examples are unchecked by default: select them only if you know they are fictional. Custom entries are not automatically selected. Export a backup before any bulk removal if unsure.
-
-On phones, transactions appear as tappable cards, controls have at least 44-pixel touch heights, and input text is sized to avoid iPhone focus zoom. All records stay in the same browser storage key, and backups continue to be processed locally.
+This requires no Node.js installation or project download on Windows. The review branch workflow cannot deploy from `supabase-review`, even if manually requested. No merge or Pages deployment is part of review-branch creation.

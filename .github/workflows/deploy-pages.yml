@@ -1,9 +1,15 @@
+# Review gate: automatic publishing is disabled for the Supabase upgrade.
+# Do not run manually until setup and live security tests have been reviewed.
 name: Deploy My Money Command Center
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+    inputs:
+      security_review_approved:
+        description: 'I reviewed setup and hosted security tests and approve deployment'
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -14,6 +20,7 @@ concurrency:
 
 jobs:
   build:
+    if: ${{ github.ref == 'refs/heads/main' && inputs.security_review_approved }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -22,16 +29,21 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Install pinned test dependencies
+        run: npm ci
       - name: Test financial calculations and backup validation
         run: npm test
-      - name: Build static website
-        run: npm run build
+      - name: Install test browser
+        run: npx playwright install --with-deps chromium
+      - name: Build and test browser integration (simulated Supabase)
+        run: npm run test:browser
       - name: Upload website only
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
   deploy:
+    if: ${{ github.ref == 'refs/heads/main' && inputs.security_review_approved }}
     needs: build
     runs-on: ubuntu-latest
     permissions:

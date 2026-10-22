@@ -12,3 +12,8 @@ dist/
 backups/
 private-data/
 my-money-backup-*.json*
+# Browser test output / private Supabase CLI state
+playwright-report/
+test-results/
+supabase/.temp/
+supabase/.branches/

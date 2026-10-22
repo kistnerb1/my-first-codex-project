@@ -1,3 +1,5 @@
+> **Supabase review draft:** this historical report describes the earlier local-only app. For the optional cloud sync upgrade, use [SUPABASE_SECURITY_REVIEW.md](SUPABASE_SECURITY_REVIEW.md). Cloud mode intentionally transmits financial records to the configured Supabase project after login; local mode remains available. The upgrade has not been published.
+
 # Privacy and security review
 
 Reviewed on October 22, 2026. Scope: application files, build/deployment configuration, the complete non-shallow local Git history, and fetched GitHub branches/tags. At the start of the review, GitHub had one branch (`main`), no tags, and two commits (`1ed7bad`, `fc2b4d1`). All 12 unique historical file blobs were examined with source review and credential-pattern checks. Git integrity checks reported no unreachable objects. This review does not cover GitHub account settings, issues, attachments, forks, provider caches, or browser/device contents.
