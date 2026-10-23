@@ -48,7 +48,7 @@ A separate browser/device must have its project connection configured and reques
    ```
 
 3. Open `http://localhost:5173` in Chrome. If another old server already uses this port, stop that server with Ctrl+C and start this version again.
-4. Expand **Connection setup** on the dashboard. Enter your **Project URL** and **public publishable/anon key**, then tap **Save connection setup**. They are stored in this browser, not sent to GitHub.
+4. Expand **Connection setup** on the dashboard. Enter your **Project URL** and **public publishable/anon key**, then tap **Save connection setup**. They are stored in this browser, not sent to GitHub. Wait for the inline “saved and verified” message. If Save fails, the field/storage error appears next to the button; paste the original case-sensitive public key and open the forwarded preview directly in Safari/Chrome. See [MOBILE_CONNECTION_REVIEW.md](MOBILE_CONNECTION_REVIEW.md) for troubleshooting and testing limits.
 5. Enter your email and tap **Email me a sign-in link**. Open the newest email link in this browser. The returning page signs in automatically; there is no code entry field. Expired/used links show a friendly message and **Send a fresh sign-in link** button.
 6. An empty cloud account shows an empty workspace. **Signing in does not upload or erase your original local data.** Signing out shows that original local workspace again.
 

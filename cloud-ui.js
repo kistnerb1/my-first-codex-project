@@ -1,13 +1,13 @@
-import {SupabaseClient,SyncEngine,validateConfig,mergeWorkspaces,emptyWorkspace,consumeAuthCallback,expiredLinkMessage} from './cloud.js';
+import {SupabaseClient,SyncEngine,validateConfig,mergeWorkspaces,emptyWorkspace,consumeAuthCallback,expiredLinkMessage,saveConnectionConfig,connectionStorageMessage} from './cloud.js';
 import {validData} from './finance.js';
 
 export function mountCloud({getData,setData,getLocalData,onMode,notify}){
   const callback=consumeAuthCallback(window.location,window.history);
   const $=s=>document.querySelector(s);const configKey='mmcc-supabase-public-config-v1';
-  let config=null,client=null,engine=null,busy=false,migration=null,backupStarted=false,conflictBackup=null;
+  let configDirty=false;let config=null,client=null,engine=null,busy=false,migration=null,backupStarted=false,conflictBackup=null;
   const status=(state,text)=>{if(!['local','synced','syncing','pending','auth','conflict','error'].includes(state))state='error'; $('#sync-status').dataset.state=state;$('#sync-status').textContent=text;$('#resolve-cloud').hidden=state!=='conflict'; };
   const lock=value=>{$('#finance-workspace').inert=value;};
-  const authBusy=value=>{busy=value;for(const id of ['send-code','save-cloud-config'])$('#'+id).disabled=value;};
+  const authBusy=value=>{busy=value;for(const id of ['send-code','save-cloud-config'])$('#'+id).disabled=value;$('#save-cloud-config').textContent=value?'Please wait…':'Save connection setup';$('#connection-busy').hidden=!value;};
   function download(data,label){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=`my-money-backup-${label}-${new Date().toISOString().slice(0,10)}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   function mode(cloud){$('#auth-form').hidden=cloud;$('#cloud-controls').hidden=!cloud;$('#cloud-settings').hidden=cloud;$('#workspace-mode').textContent=cloud?'Signed-in cloud workspace':'Local browser workspace';$('#reset').disabled=cloud;onMode(cloud);}
   async function connect(user){
@@ -16,10 +16,31 @@ export function mountCloud({getData,setData,getLocalData,onMode,notify}){
     try{await engine.start();}catch(e){status('error',e.message);}finally{lock(!engine?.ready);}
   }
   async function run(task){if(busy)return;authBusy(true);try{await task();}catch(e){status(e.kind||'error',e.message);}finally{authBusy(false);}}
-  try{const saved=JSON.parse(localStorage.getItem(configKey));if(saved){config=validateConfig(saved.url,saved.key);$('#project-url').value=config.url;$('#publishable-key').value=config.key;}}catch{status('error','Saved connection setup could not be read. Local data was not changed.');}
-  $('#save-cloud-config').onclick=()=>{try{config=validateConfig($('#project-url').value.trim(),$('#publishable-key').value.trim());localStorage.setItem(configKey,JSON.stringify(config));client=null;$('#cloud-settings').open=false;status('local','Connection setup saved on this browser. Sign in below. No financial records have been uploaded.');}catch(e){status('error',e.message);}};
+  function setupFeedback(text,state='error',field=null){
+    const feedback=$('#connection-feedback');feedback.textContent=text;feedback.dataset.state=state;feedback.hidden=false;
+    $('#project-url').setAttribute('aria-invalid',String(field==='url'));$('#publishable-key').setAttribute('aria-invalid',String(field==='key'));
+    $('#cloud-settings').open=true;
+    if(state==='error'){
+      const input=field==='url'?$('#project-url'):field==='key'?$('#publishable-key'):null;
+      input?.focus();feedback.scrollIntoView({block:'nearest'});
+    }
+  }
+  try{const saved=JSON.parse(localStorage.getItem(configKey));if(saved){config=validateConfig(saved.url,saved.key);$('#project-url').value=config.url;$('#publishable-key').value=config.key;}}catch{setupFeedback('Saved connection setup could not be read. Re-enter the public project details. Existing financial data was not changed.');status('error','Connection setup needs attention below.');}
+  for(const input of [$('#project-url'),$('#publishable-key')])input.addEventListener('input',()=>{
+    configDirty=true;input.setAttribute('aria-invalid','false');$('#connection-feedback').hidden=false;$('#connection-feedback').dataset.state='pending';$('#connection-feedback').textContent='Connection details changed. Tap Save connection setup to apply them.';
+  });
+  $('#connection-form').addEventListener('submit',event=>{
+    event.preventDefault();if(busy)return;
+    try{
+      const candidate=saveConnectionConfig(window.localStorage,$('#project-url').value,$('#publishable-key').value);
+      config=candidate;configDirty=false;client=null;
+      $('#project-url').value=config.url;$('#publishable-key').value=config.key;
+      setupFeedback('Connection setup saved and verified in this browser. You can now request a sign-in link.','success');
+      status('local','Connection setup saved on this browser. Sign in below. No financial records have been uploaded.');
+    }catch(error){setupFeedback(error.field?error.message:connectionStorageMessage,'error',error.field);status('error','Connection setup was not saved. See the message next to Save connection setup.');}
+  });
   $('#auth-form').onsubmit=e=>{e.preventDefault();void run(async()=>{
-    if(!config)throw Error('Save your Supabase project URL and public key first.');
+    if(!config||configDirty){setupFeedback('Save your Supabase project URL and public key here before requesting a sign-in link.');throw Error('Save your Supabase project URL and public key first. See Connection setup below.');}
     if(!$('#email').reportValidity())return;
     if(client&&!client.session)client.closed=true;client=new SupabaseClient(config);
     await client.sendLink($('#email').value.trim(),window.location.origin+window.location.pathname);

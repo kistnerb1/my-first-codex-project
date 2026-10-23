@@ -49,7 +49,7 @@ The app does not rely on a UI filter as its security boundary. Conditional write
 | Production build at `/my-first-codex-project/` | Passed | Whitelist contains only six frontend files plus `.nojekyll` |
 | Dependency audit | Passed at review time | `npm audit --audit-level=high` found no reported vulnerabilities; not a guarantee against unknown issues |
 
-The automated unit/RLS suite currently has **32 passing tests**. Browser tests run separately. Test records, fake tokens, and email addresses in code are deliberately fictional. No actual financial records, Supabase secret keys, passwords, or live session tokens were added. Dependency versions are pinned in `package-lock.json`; test packages are not copied into the production artifact.
+The automated unit/RLS suite currently has **35 passing tests**. Browser tests run separately. Test records, fake tokens, and email addresses in code are deliberately fictional. No actual financial records, Supabase secret keys, passwords, or live session tokens were added. Dependency versions are pinned in `package-lock.json`; test packages are not copied into the production artifact.
 
 ## Hosted checks completed after project setup
 
@@ -93,3 +93,7 @@ The draft removes the workflow's push trigger and retains only manual `workflow_
 The app now requests the standard default Supabase email link with the current app origin/path as the redirect. Returned access/refresh tokens are removed from the URL and checked against `/auth/v1/user` before storage or financial requests. Reloads restore and validate the tab session; expired/used error callbacks show a fresh-link action without exposing provider error descriptions. Local records are never automatically migrated by sign-in. Existing schema/RLS policies are unchanged.
 
 Unit and intercepted-browser coverage includes valid fragment returns, URL cleanup, server-rejected tokens, provider error callbacks, reload persistence and fresh-link recovery, alongside existing sync/migration/dashboard regressions. Live default-email delivery, exact Codespaces redirect configuration, real link consumption/reuse and iPhone email/browser handoff still require testing with your project. No real login emails were sent by the automated tests. No merge or deployment is authorized by this repair.
+
+## Mobile connection setup repair
+
+See [MOBILE_CONNECTION_REVIEW.md](MOBILE_CONNECTION_REVIEW.md) for reproduced input/error/storage defects and device-test limits. Saving now uses a native submit form with inline validation and read-back verification before activation. Thirteen phone-sized Chromium setup scenarios pass, in addition to existing auth/sync/migration regressions. The actual iPhone trigger remains unconfirmed; WebKit download was blocked by the environment. No financial data, policies, or migrations changed, and this repair is not pushed until approved.

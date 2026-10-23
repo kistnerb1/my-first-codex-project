@@ -3,16 +3,32 @@ import {validData} from './finance.js';
 export class CloudError extends Error {
   constructor(message,kind='network'){super(message);this.kind=kind;}
 }
+export class ConnectionSetupError extends Error {
+  constructor(message,field){super(message);this.field=field;}
+}
 export function validateConfig(url,key){
-  if(typeof url!=='string'||typeof key!=='string'||!url||!key)throw new Error('Enter the project URL and public publishable key.');
-  const parsed=new URL(url);
-  if(parsed.protocol!=='https:'||! /^[a-z0-9-]+\.supabase\.co$/.test(parsed.hostname)||parsed.username||parsed.password||parsed.port||parsed.pathname!=='/'||parsed.search||parsed.hash)throw new Error('Use your HTTPS Supabase project URL (https://your-project.supabase.co).');
-  if(key.startsWith('sb_secret_'))throw new Error('Secret/service-role keys are forbidden. Use a public publishable or anon key.');
+  if(typeof url!=='string'||!url.trim())throw new ConnectionSetupError('Enter your Supabase project URL, starting with https://.','url');
+  if(typeof key!=='string'||!key.trim())throw new ConnectionSetupError('Paste your public publishable or legacy anon key.','key');
+  // Clipboard formatting is not part of a URL/key. Preserve case and actual key characters.
+  url=url.replace(/[\u200B-\u200D\uFEFF]/g,'').trim();
+  key=key.replace(/[\s\u200B-\u200D\uFEFF]/g,'');
+  let parsed;try{parsed=new URL(url);}catch{throw new ConnectionSetupError('The project URL is not valid. Copy the HTTPS Project URL from Supabase, without quotes or brackets.','url');}
+  if(parsed.protocol!=='https:'||! /^[a-z0-9-]+\.supabase\.co$/.test(parsed.hostname)||parsed.username||parsed.password||parsed.port||parsed.pathname!=='/'||parsed.search||parsed.hash)throw new ConnectionSetupError('Use only your HTTPS Supabase project URL (https://your-project.supabase.co), without extra paths or query text.','url');
+  if(/^sb_secret_/i.test(key))throw new ConnectionSetupError('Secret/service-role keys are forbidden. Use a public publishable or anon key.','key');
   if(!/^sb_publishable_[A-Za-z0-9_-]+$/.test(key)){
     try{const part=key.split('.')[1];const claims=JSON.parse(atob(part.replace(/-/g,'+').replace(/_/g,'/')));if(key.split('.').length!==3||claims.role!=='anon')throw Error();}
-    catch{throw new Error('Use only a public publishable key or a legacy anon key, never a service-role key.');}
+    catch{throw new ConnectionSetupError('The public key is invalid or its capitalization changed. Keys are case-sensitive: paste the original sb_publishable_… or legacy anon key from Supabase. Never use a service-role key.','key');}
   }
   return {url:parsed.origin,key};
+}
+export const connectionStorageMessage='This browser could not confirm saving the connection setup. Website storage may be blocked or full. Open the preview directly in Safari or Chrome, allow website data, and try again. Your financial data was not changed.';
+export function saveConnectionConfig(storage,url,key){
+  const config=validateConfig(url,key);
+  try{
+    const serialized=JSON.stringify(config);storage.setItem('mmcc-supabase-public-config-v1',serialized);
+    if(storage.getItem('mmcc-supabase-public-config-v1')!==serialized)throw Error('Storage did not retain the configuration');
+  }catch{throw new ConnectionSetupError(connectionStorageMessage,'storage');}
+  return config;
 }
 // Capture and remove credentials/errors before any account or financial requests.
 export function consumeAuthCallback(location,history){
