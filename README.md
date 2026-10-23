@@ -2,7 +2,7 @@
 
 A phone-friendly personal finance dashboard for income, expenses, bills, budgets, available cash, and what-if calculations. Includes editable transactions, confirmed sample clearing, and JSON backups.
 
-**Supabase sync upgrade is a review draft. It has NOT been published.** This version is being saved to `supabase-review`; `main` and the existing GitHub Pages site remain unchanged. Do not deploy until the setup and security tests have been reviewed and approved.
+**Supabase sync upgrade is prepared for release review. It has NOT been published.** This version is being saved to `supabase-review`; `main` and the existing GitHub Pages site remain unchanged. Do not deploy until the setup and security tests have been reviewed and approved.
 
 ## Start on Windows
 
@@ -20,7 +20,7 @@ Open `http://localhost:5173` in Chrome. Stop with Ctrl+C. The runtime has no ext
 
 Local mode keeps records in this browser with no financial uploads. **Optional cloud mode** uses your Supabase project for verified email magic-link authentication and a per-user RLS-protected database. It sends financial records over HTTPS to Supabase, not GitHub. There are no ads, analytics, bank connections, or third-party font requests.
 
-Follow [SUPABASE_SETUP.md](SUPABASE_SETUP.md) for the free-tier project setup, email login, safe backup-and-confirm migration, sync indicators, and required live tests. See [SUPABASE_SECURITY_REVIEW.md](SUPABASE_SECURITY_REVIEW.md) for exactly what has passed and what is still pending.
+Follow [SUPABASE_SETUP.md](SUPABASE_SETUP.md) for the free-tier project setup, email login, safe backup-and-confirm migration, sync indicators, and required live tests. See [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) for the current release evidence, exact website artifact, and remaining production URL checks. [SUPABASE_SECURITY_REVIEW.md](SUPABASE_SECURITY_REVIEW.md) describes the security design and earlier testing.
 
 Your original local browser workspace is kept separately from cloud account caches. Signing in never migrates local data automatically. Existing browser records are not erased by this update. Migration requires downloading/checking a backup and confirming the cloud account. Signing out restores the original local workspace. Unsynced account changes remain in a user-specific device cache.
 

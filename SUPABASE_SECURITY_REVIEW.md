@@ -1,3 +1,5 @@
+> Current release status: see [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md). The user has now reported a hosted two-user isolation PASS and successful live auth/device synchronization; pending statements below describe earlier test availability. The permanent Supabase redirect settings still need confirmation.
+
 # Supabase upgrade: setup and security review
 
 **Status: REVIEW BRANCH DRAFT — NOT MERGED OR DEPLOYED.** Prepared October 22, 2026. The current public Pages website is unchanged. The user supplied public connection details and confirmed running the schema. Limited read-only/negative checks against that project now pass; successful email sign-in and authenticated two-user tests are still pending. No live financial records were read or written.
