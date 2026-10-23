@@ -1,12 +1,13 @@
-import {SupabaseClient,SyncEngine,validateConfig,mergeWorkspaces,emptyWorkspace} from './cloud.js';
+import {SupabaseClient,SyncEngine,validateConfig,mergeWorkspaces,emptyWorkspace,consumeAuthCallback,expiredLinkMessage} from './cloud.js';
 import {validData} from './finance.js';
 
 export function mountCloud({getData,setData,getLocalData,onMode,notify}){
+  const callback=consumeAuthCallback(window.location,window.history);
   const $=s=>document.querySelector(s);const configKey='mmcc-supabase-public-config-v1';
   let config=null,client=null,engine=null,busy=false,migration=null,backupStarted=false,conflictBackup=null;
   const status=(state,text)=>{if(!['local','synced','syncing','pending','auth','conflict','error'].includes(state))state='error'; $('#sync-status').dataset.state=state;$('#sync-status').textContent=text;$('#resolve-cloud').hidden=state!=='conflict'; };
   const lock=value=>{$('#finance-workspace').inert=value;};
-  const authBusy=value=>{busy=value;for(const id of ['send-code','verify-code','save-cloud-config'])$('#'+id).disabled=value;};
+  const authBusy=value=>{busy=value;for(const id of ['send-code','save-cloud-config'])$('#'+id).disabled=value;};
   function download(data,label){const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download=`my-money-backup-${label}-${new Date().toISOString().slice(0,10)}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   function mode(cloud){$('#auth-form').hidden=cloud;$('#cloud-controls').hidden=!cloud;$('#cloud-settings').hidden=cloud;$('#workspace-mode').textContent=cloud?'Signed-in cloud workspace':'Local browser workspace';$('#reset').disabled=cloud;onMode(cloud);}
   async function connect(user){
@@ -17,8 +18,14 @@ export function mountCloud({getData,setData,getLocalData,onMode,notify}){
   async function run(task){if(busy)return;authBusy(true);try{await task();}catch(e){status(e.kind||'error',e.message);}finally{authBusy(false);}}
   try{const saved=JSON.parse(localStorage.getItem(configKey));if(saved){config=validateConfig(saved.url,saved.key);$('#project-url').value=config.url;$('#publishable-key').value=config.key;}}catch{status('error','Saved connection setup could not be read. Local data was not changed.');}
   $('#save-cloud-config').onclick=()=>{try{config=validateConfig($('#project-url').value.trim(),$('#publishable-key').value.trim());localStorage.setItem(configKey,JSON.stringify(config));client=null;$('#cloud-settings').open=false;status('local','Connection setup saved on this browser. Sign in below. No financial records have been uploaded.');}catch(e){status('error',e.message);}};
-  $('#send-code').onclick=()=>run(async()=>{if(!config)throw Error('Save your Supabase project URL and public key first.');if(!$('#email').reportValidity())return;const email=$('#email').value.trim();if(client&&!client.session)client.closed=true;client=new SupabaseClient(config);await client.sendCode(email);$('#code').value='';$('#code').focus();status('auth','Check your email for the code. Email delivery may take a moment.');});
-  $('#auth-form').onsubmit=e=>{e.preventDefault();void run(async()=>{if(!client||!config)throw Error('Request an email code first.');const user=await client.verify($('#email').value.trim(),$('#code').value.trim());$('#code').value='';await connect(user);});};
+  $('#auth-form').onsubmit=e=>{e.preventDefault();void run(async()=>{
+    if(!config)throw Error('Save your Supabase project URL and public key first.');
+    if(!$('#email').reportValidity())return;
+    if(client&&!client.session)client.closed=true;client=new SupabaseClient(config);
+    await client.sendLink($('#email').value.trim(),window.location.origin+window.location.pathname);
+    status('auth','Sign-in email sent. Open the newest email link in this same browser. If it expired or was already used, request a fresh link here. Your local data has not been uploaded.');
+    $('#send-code').textContent='Send a fresh sign-in link';
+  });};
   $('#sync-now').onclick=()=>{if(engine)void engine.pull();};
   $('#sign-out').onclick=()=>run(async()=>{
     if(engine?.dirty&&!confirm('Some changes are not synced. They will remain in this account’s cache on this device. Sign out?'))return;
@@ -59,7 +66,19 @@ export function mountCloud({getData,setData,getLocalData,onMode,notify}){
   document.addEventListener('visibilitychange',()=>{if(engine&&!document.hidden)void engine.pull();});
   window.addEventListener('beforeunload',event=>{if(engine?.dirty){event.preventDefault();event.returnValue='';}});
   window.addEventListener('pagehide',()=>{if(engine?.dirty)engine.persist();});
-  if(config){client=new SupabaseClient(config);void run(async()=>{status('auth','Checking sign-in…');const user=await client.restore();if(user)await connect(user);else status('local','Local mode. Sign in to use your cloud workspace.');});}
+  function finishLink(values){
+    $('#send-code').textContent='Send a fresh sign-in link';
+    if(values.error||values.error_code||values.code||!values.access_token||!values.refresh_token){status('auth',expiredLinkMessage);return;}
+    if(!config){status('auth','Sign-in details were removed from the address for privacy. Set up this browser’s Supabase connection, then request a fresh link here.');return;}
+    client=new SupabaseClient(config);void run(async()=>{status('auth','Verifying your sign-in link…');const user=await client.acceptMagicLink(values);await connect(user);});
+  }
+  window.addEventListener('hashchange',()=>{
+    const values=consumeAuthCallback(window.location,window.history);if(!values)return;
+    if(engine||busy){status('auth','You already have an active sign-in or workspace. Your current records are kept. Sign out before requesting a new link for another account.');return;}
+    finishLink(values);
+  });
+  if(callback)finishLink(callback);
+  else if(config){client=new SupabaseClient(config);void run(async()=>{status('auth','Checking sign-in…');const user=await client.restore();if(user)await connect(user);else status('local','Local mode. Sign in to use your cloud workspace.');});}
   return {
     get active(){return !!engine;},
     save(data){if(!engine)return false;engine.edit(data);return true;},

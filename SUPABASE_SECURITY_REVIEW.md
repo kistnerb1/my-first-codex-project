@@ -4,7 +4,7 @@
 
 ## Architecture and privacy boundary
 
-The static frontend talks directly over HTTPS to the user's configured Supabase project. It uses standard Auth OTP, verify, refresh, user, and logout endpoints plus the PostgREST table API. There are no runtime SDK/CDN dependencies, analytics, bank integrations, or backend secrets. The Supabase project URL and public publishable/anon key are entered in the browser and stored locally; no project credentials are hardcoded into this source.
+The static frontend talks directly over HTTPS to the user's configured Supabase project. It uses standard Auth magic-link request, refresh, user, and logout endpoints plus the PostgREST table API. There are no runtime SDK/CDN dependencies, analytics, bank integrations, or backend secrets. The Supabase project URL and public publishable/anon key are entered in the browser and stored locally; no project credentials are hardcoded into this source.
 
 Local mode retains the existing `my-money-command-center-v1` data key. Signing in opens a separate workspace and never uploads the local workspace automatically. Each authenticated account has its own cloud cache, scoped by project URL and server-validated user ID. Original local records remain unchanged during cloud migration. Signing out restores the original local workspace.
 
@@ -12,8 +12,8 @@ Cloud mode intentionally sends financial data to Supabase. Supabase Auth/email i
 
 ## Authentication
 
-- Email one-time code; no passwords collected or stored by this app.
-- Supabase verifies the code. Restored session identities are checked using `/auth/v1/user`; the app does not trust an unverified cached user ID.
+- Default single-use email magic links; no template edits, code-entry field, or passwords required.
+- Supabase verifies the email link. The callback removes auth parameters from the URL and validates its user before persisting tokens. Restored session identities are checked using `/auth/v1/user`; the app does not trust an unverified cached user ID.
 - Access/refresh tokens live in memory and tab `sessionStorage`, never the financial data object, JSON backup, build configuration, or Git. Expired access tokens refresh using Supabase; auth failures preserve pending financial data.
 - Local-scope logout removes tab credentials even if the network request fails; a failed server revocation is clearly reported. This does not deliberately sign out the other device.
 - Secret and service-role keys are rejected. Only `https://*.supabase.co` project URLs without user info, ports, query strings, or other paths are accepted. Custom domains are not supported by this version.
@@ -38,7 +38,7 @@ The app does not rely on a UI filter as its security boundary. Conditional write
 | Area | Result | Evidence / limit |
 | --- | --- | --- |
 | Financial calculations/import validation/sample clearing | Passed | Existing unit tests retained |
-| Email-code requests, bad login, token refresh, identity restoration, logout | Passed (simulated HTTP) | `cloud.test.js`; real email delivery and hosted JWT verification pending |
+| Magic-link requests/returns, expired-link recovery, token refresh, reload restoration, logout | Passed (simulated HTTP) | `cloud.test.js`; real email delivery and hosted JWT verification pending |
 | Anonymous denial and cross-user SELECT/INSERT/UPDATE/DELETE | Passed in actual local PostgreSQL engine | `rls.test.js` loads the exact schema into PGlite; Supabase auth schema/JWT claim setting is emulated |
 | Unauthenticated/null-identity access and owner reassignment | Passed locally | RLS/trigger tests |
 | Offline retry, conditional revisions, simultaneous writes, account caches | Passed | Unit tests and browser HTTP simulation |
@@ -49,7 +49,7 @@ The app does not rely on a UI filter as its security boundary. Conditional write
 | Production build at `/my-first-codex-project/` | Passed | Whitelist contains only six frontend files plus `.nojekyll` |
 | Dependency audit | Passed at review time | `npm audit --audit-level=high` found no reported vulnerabilities; not a guarantee against unknown issues |
 
-The automated unit/RLS suite currently has **27 passing tests**. Browser tests run separately. Test records, fake tokens, and email addresses in code are deliberately fictional. No actual financial records, Supabase secret keys, passwords, or live session tokens were added. Dependency versions are pinned in `package-lock.json`; test packages are not copied into the production artifact.
+The automated unit/RLS suite currently has **32 passing tests**. Browser tests run separately. Test records, fake tokens, and email addresses in code are deliberately fictional. No actual financial records, Supabase secret keys, passwords, or live session tokens were added. Dependency versions are pinned in `package-lock.json`; test packages are not copied into the production artifact.
 
 ## Hosted checks completed after project setup
 
@@ -64,7 +64,7 @@ These checks confirm connectivity and the observed denial/configuration behavior
 
 - [x] Project public details supplied and connectivity confirmed. User reports schema applied; hosted policy definitions and authenticated behavior still need verification.
 - [ ] Apply the schema, inspect policies, and verify hosted API RLS using two disposable test users.
-- [ ] Check real email delivery, correct/incorrect/expired codes, session refresh and logout.
+- [ ] Check real email delivery, fresh/expired/already-used magic links and redirect allowlisting, session refresh and logout.
 - [ ] Verify Windows Chrome + iPhone Safari against that project with synthetic records, including deletes.
 - [ ] Test the real backup/cancel/confirm migration, duplicate import, and conflicting versions.
 - [ ] Check offline/reconnect/conflict behavior against the hosted project.
@@ -77,7 +77,7 @@ These checks confirm connectivity and the observed denial/configuration behavior
 
 1. Browser data/backups are unencrypted. Session tokens are readable to trusted same-origin JavaScript and potentially extensions/device malware. Other projects under the same `kistnerb1.github.io` origin share browser storage: keep that origin trusted or use a dedicated origin for sensitive use.
 2. Supabase is a cloud processor, not end-to-end encrypted storage. Its database administrators/project owner can access records. Enable two-factor authentication on Supabase, GitHub, and the login email account; restrict collaborators and review deployed changes.
-3. Email codes depend on email security, provider rate limits, and SMTP configuration. The built-in sender may be limited to authorized team addresses. SMTP credentials belong only in Supabase settings. No CAPTCHA flow is included; use provider protections/limits and monitor abuse.
+3. Magic links depend on email security, correct redirect allowlisting and provider rate limits. Default templates work without custom SMTP. The built-in sender may be limited to authorized team addresses. SMTP credentials belong only in Supabase settings. No CAPTCHA flow is included; use provider protections/limits and monitor abuse.
 4. Queued edits on a device are not a cloud backup until sync succeeds. Clearing site data before syncing can lose those changes. Keep private exports. Never upload financial JSON, tokens, or screenshots of real rows to public GitHub.
 5. A whole-workspace revision is used, so even simultaneous edits to different fields can conflict. Reconciliation is deliberately explicit; it favors preservation over an invisible last-write-wins strategy.
 6. The CSP permits HTTPS data connections to Supabase subdomains to support per-browser configuration. Application URL validation restricts the active connection, but CSP is not a substitute for trusted code. A compromised deployed app can change its policy.
@@ -87,3 +87,9 @@ These checks confirm connectivity and the observed denial/configuration behavior
 ## Publication hold
 
 The draft removes the workflow's push trigger and retains only manual `workflow_dispatch`, gated by the explicit `security_review_approved` checkbox and restricted to `main`; the review branch cannot deploy. The user authorized saving source to `supabase-review` only. No merge into `main`, GitHub Pages deployment, live schema change by this code, real account creation, or financial migration was performed for this upgrade. Existing public deployment remains on the previously approved version. Publishing is a separate action after the pending tests and user review.
+
+## Magic-link repair (review branch only)
+
+The app now requests the standard default Supabase email link with the current app origin/path as the redirect. Returned access/refresh tokens are removed from the URL and checked against `/auth/v1/user` before storage or financial requests. Reloads restore and validate the tab session; expired/used error callbacks show a fresh-link action without exposing provider error descriptions. Local records are never automatically migrated by sign-in. Existing schema/RLS policies are unchanged.
+
+Unit and intercepted-browser coverage includes valid fragment returns, URL cleanup, server-rejected tokens, provider error callbacks, reload persistence and fresh-link recovery, alongside existing sync/migration/dashboard regressions. Live default-email delivery, exact Codespaces redirect configuration, real link consumption/reuse and iPhone email/browser handoff still require testing with your project. No real login emails were sent by the automated tests. No merge or deployment is authorized by this repair.

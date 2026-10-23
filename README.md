@@ -18,7 +18,7 @@ Open `http://localhost:5173` in Chrome. Stop with Ctrl+C. The runtime has no ext
 
 ## Local mode or private cloud sync
 
-Local mode keeps records in this browser with no financial uploads. **Optional cloud mode** uses your Supabase project for verified email-code authentication and a per-user RLS-protected database. It sends financial records over HTTPS to Supabase, not GitHub. There are no ads, analytics, bank connections, or third-party font requests.
+Local mode keeps records in this browser with no financial uploads. **Optional cloud mode** uses your Supabase project for verified email magic-link authentication and a per-user RLS-protected database. It sends financial records over HTTPS to Supabase, not GitHub. There are no ads, analytics, bank connections, or third-party font requests.
 
 Follow [SUPABASE_SETUP.md](SUPABASE_SETUP.md) for the free-tier project setup, email login, safe backup-and-confirm migration, sync indicators, and required live tests. See [SUPABASE_SECURITY_REVIEW.md](SUPABASE_SECURITY_REVIEW.md) for exactly what has passed and what is still pending.
 
@@ -55,7 +55,7 @@ The earlier local-only privacy report is preserved in [SECURITY.md](SECURITY.md)
 2. Click **Code → Codespaces → Create codespace on supabase-review**.
 3. In the browser terminal run `npm ci`, then `npm start`.
 4. Open the **Ports** tab, forward **5173** if needed, keep visibility **Private**, and click **Open in Browser**.
-5. Enter your Supabase project URL and public publishable key in **Connection setup**, then use email-code login. Never enter a secret/service-role key. Use synthetic records until the hosted security checklist passes.
+5. Enter your Supabase project URL and public publishable key in **Connection setup**, then use email magic-link login. Never enter a secret/service-role key. Use synthetic records until the hosted security checklist passes.
 6. Open the same private forwarded address on iPhone while signed into GitHub. Configure the same Supabase project and log in with the same email. Stop the Codespace when finished to conserve its free allowance.
 
 This requires no Node.js installation or project download on Windows. The review branch workflow cannot deploy from `supabase-review`, even if manually requested. No merge or Pages deployment is part of review-branch creation.

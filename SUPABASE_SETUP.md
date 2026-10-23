@@ -23,14 +23,18 @@ You can also run [supabase/verify-setup.sql](supabase/verify-setup.sql) in a new
 
 Every read, insert, update, and delete is restricted by `auth.uid() = user_id`. Anonymous users receive no table privileges. Changing the owner is forbidden. A database trigger advances revisions; the app sends conditional updates to detect simultaneous device edits. There is no frontend bypass key and no security-definer data-access function.
 
-## 3. Enable email code login
+## 3. Enable the default magic-link login (no template edits required)
 
-1. Open **Authentication → Sign In / Providers → Email** (dashboard wording may vary). Enable email sign-in and keep email verification enabled.
-2. Open **Authentication → Email Templates**. For **Magic Link** and, if shown separately, **Confirm Signup**, include the one-time token `{{ .Token }}` in the email body, for example: `Your My Money login code is: {{ .Token }}`. The app accepts 6–10 digit codes. Keep the token short-lived (the default is acceptable; prefer 10 minutes if available).
-3. Under **Authentication → URL Configuration**, set **Site URL** to `https://kistnerb1.github.io/my-first-codex-project/`. Add this address and `http://localhost:5173/` as allowed redirect URLs for testing. The app uses manually entered codes, so it does not put tokens in URL fragments or require a redirect handler.
-4. Review Supabase's email rate limits. Its built-in test email sender may deliver only to authorized organization/team addresses. Start with your Supabase account email. For other addresses, configure SMTP using a provider's suitable free allowance; enter SMTP credentials **only in Supabase's dashboard**, never in this repository. Email providers process login email/code messages, not financial records. Do not disable verification to work around delivery failures.
+1. In **Authentication → Sign In / Providers → Email**, enable email login and keep email confirmation enabled.
+2. Keep Supabase's default **Magic Link** and **Confirm Signup** email templates. Do not edit them to contain a six-digit code. No custom SMTP is required for this app's magic-link flow.
+3. Open the review app in your browser and copy its exact address. For Codespaces, use the private forwarded HTTPS address shown by **Ports → Open in Browser**, including its path and trailing slash. Keep this address stable while testing.
+4. In **Authentication → URL Configuration → Redirect URLs**, add that exact review address. For local Windows testing add `http://localhost:5173/`. The eventual production address is `https://kistnerb1.github.io/my-first-codex-project/`, but do not use the existing local-only production app as the review callback. Set **Site URL** to your review address while testing if needed for the email fallback. This changes Supabase login redirects, not the live website's deployed code.
+5. Request a **new** email after saving the redirect settings. Old emails retain their old destinations. The app sends the current origin/path as `redirect_to`; Supabase must allow that exact address or it can fall back to Site URL.
+6. The built-in sender still has Supabase's delivery/rate restrictions and may only deliver to authorized organization/team email addresses. Start with your Supabase account email. Custom SMTP is optional for broader delivery, not required to edit templates for this flow. Never disable verification or put SMTP credentials in source code.
 
-The first verified email code can create an account. There is no password field in the app. Never share a login code: whoever has it can access that account. Standard email-code authentication relies on your email account's security; protect it with two-factor authentication.
+Click the newest email link **once**, in the same browser where you configured the project. Supabase verifies the one-time link and redirects back with session tokens in the URL fragment. The app removes auth parameters from the address, validates the user with Supabase, and stores the session in tab sessionStorage. It does not send the link token through a second code-verification request. Email clients/security scanners can sometimes consume single-use links; request a fresh email if one is expired/used. Do not share or paste login links into chat or issues.
+
+A separate browser/device must have its project connection configured and request its own link. If an email opens in an in-app browser without your connection setup, reopen the app in your normal Chrome/Safari browser and request a new link there. Unsupported older PKCE/code callbacks show a fresh-link prompt; this app requests Supabase's standard implicit magic-link flow and does not invent or accept missing PKCE verifiers.
 
 ## 4. Preview the review version on Windows
 
@@ -45,7 +49,7 @@ The first verified email code can create an account. There is no password field 
 
 3. Open `http://localhost:5173` in Chrome. If another old server already uses this port, stop that server with Ctrl+C and start this version again.
 4. Expand **Connection setup** on the dashboard. Enter your **Project URL** and **public publishable/anon key**, then tap **Save connection setup**. They are stored in this browser, not sent to GitHub.
-5. Enter your email and tap **Send login code**. Retrieve the code from your email, enter it, and tap **Sign in with code**.
+5. Enter your email and tap **Email me a sign-in link**. Open the newest email link in this browser. The returning page signs in automatically; there is no code entry field. Expired/used links show a friendly message and **Send a fresh sign-in link** button.
 6. An empty cloud account shows an empty workspace. **Signing in does not upload or erase your original local data.** Signing out shows that original local workspace again.
 
 Each browser needs the project URL and public key entered once. The app stores access/refresh tokens in that tab's sessionStorage; after the tab's session ends, sign in again. Tokens never appear in backups or build output. Do not put browser session tokens in screenshots, chat, issues, or source files.
@@ -79,7 +83,7 @@ Signing out restores the separate local workspace and removes this tab's session
 
 The automated tests currently cover local PostgreSQL RLS and a simulated Supabase Auth/HTTP service. They are not proof your hosted project is correctly configured. Use only synthetic numbers for these checks. Record the results in [SUPABASE_SECURITY_REVIEW.md](SUPABASE_SECURITY_REVIEW.md).
 
-1. **Authentication:** correct email code logs in; an incorrect/expired code is rejected; sign-out removes access. Close the tab and confirm that a new session requires login when no saved session is available. Verify email delivery with the addresses you will use.
+1. **Authentication:** a fresh magic link returns to the review app and logs in; reloading retains the signed-in session; expired/already-used links show a friendly fresh-link action; sign-out removes access. Close the tab and confirm that a new session requires login when no saved session is available. Verify email delivery with the addresses you will use.
 2. **Two devices, same account:** enter a synthetic income, expense, bill, and budget on Windows. On iPhone, use the same project and email account. Confirm all values appear; change a bill's paid status on iPhone and confirm it changes on Windows. Confirm deletions sync too.
 3. **Different accounts:** use a second test email in a separate browser profile/private window. Its cloud workspace must be empty and must never show the first user's cloud records. The app's separate pre-existing local workspace is not the cloud account.
 4. **Direct database restrictions:** use the optional live test script described below to check reads without owner filters and attempted cross-user inserts, updates, and deletes. A blank UI alone is not proof of RLS.

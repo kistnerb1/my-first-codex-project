@@ -14,6 +14,18 @@ export function validateConfig(url,key){
   }
   return {url:parsed.origin,key};
 }
+// Capture and remove credentials/errors before any account or financial requests.
+export function consumeAuthCallback(location,history){
+  const url=new URL(location.href);const hash=new URLSearchParams(url.hash.slice(1));
+  const keys=['access_token','refresh_token','expires_in','expires_at','token_type','type','error','error_code','error_description','code'];
+  const isCallback=['access_token','refresh_token','error','error_code'].some(k=>hash.has(k)||url.searchParams.has(k))||url.searchParams.has('code');
+  if(!isCallback)return null;
+  const values={};for(const k of keys){if(hash.has(k))values[k]=hash.get(k);else if(url.searchParams.has(k))values[k]=url.searchParams.get(k);url.searchParams.delete(k);}
+  if(['access_token','refresh_token','error','error_code'].some(k=>hash.has(k)))url.hash='';
+  history.replaceState(null,'',url.pathname+url.search+url.hash);
+  return values;
+}
+export const expiredLinkMessage='This sign-in link has expired, was already used, or could not be verified. Your local data is safe. Request a fresh sign-in link below and use the newest email.';
 export class SupabaseClient {
   constructor(config,{fetcher=globalThis.fetch.bind(globalThis),sessionStore=globalThis.sessionStorage,onSession=()=>{}}={}){
     this.config=validateConfig(config.url,config.key);this.fetcher=fetcher;this.sessionStore=sessionStore;this.onSession=onSession;this.session=null;this.refreshing=null;this.closed=false;
@@ -35,11 +47,26 @@ export class SupabaseClient {
     try{response=await this.fetcher(this.config.url+path,{method,headers:{apikey:this.config.key,...(auth?{Authorization:'Bearer '+this.session.access_token}:{}),...(body!==undefined?{'Content-Type':'application/json'}:{}),...(path.startsWith('/rest/')?{Prefer:'return=representation'}:{})},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal,credentials:'omit',referrerPolicy:'no-referrer'});}
     catch{throw new CloudError('Connection failed. Changes remain saved on this device. Check your connection and retry.');}finally{clearTimeout(timer);}
     if(response.status===401&&auth&&retry){await this.refresh();return this.request(path,{method,body,auth,retry:false});}
-    if(!response.ok){if(response.status===401||response.status===403)throw new CloudError('Sign-in expired or access denied. Sign in again; local changes are kept.','auth');if(response.status===409)throw new CloudError('Another device changed this workspace. Review the conflict.','conflict');if(response.status===429)throw new CloudError('Too many requests. Wait a moment before trying again.','rate');throw new CloudError(path.includes('/auth/')?'Sign-in failed. Check the email/code and your Supabase email settings.':'Cloud request failed. Check the database setup and permissions.');}
+    if(!response.ok){if(response.status===401||response.status===403)throw new CloudError('Sign-in expired or access denied. Sign in again; local changes are kept.','auth');if(response.status===409)throw new CloudError('Another device changed this workspace. Review the conflict.','conflict');if(response.status===429)throw new CloudError('Too many requests. Wait a moment before trying again.','rate');throw new CloudError(path.includes('/auth/')?'Sign-in failed. Check the email address, allowed redirect URL, and Supabase email settings.':'Cloud request failed. Check the database setup and permissions.');}
     if(response.status===204)return null;
     return response.json();
   }
-  async sendCode(email){await this.request('/auth/v1/otp',{method:'POST',body:{email,create_user:true}});}
+  async sendLink(email,returnUrl){
+    const redirect=new URL(returnUrl);
+    if((redirect.protocol!=='https:'&&!(redirect.protocol==='http:'&&['localhost','127.0.0.1'].includes(redirect.hostname)))||redirect.username||redirect.password)throw new CloudError('Open the app using HTTPS before requesting a sign-in link.','auth');
+    redirect.hash='';redirect.search='';
+    await this.request('/auth/v1/otp?redirect_to='+encodeURIComponent(redirect.href),{method:'POST',body:{email,create_user:true}});
+  }
+  async acceptMagicLink(values){
+    if(values.error||values.error_code||values.code||!values.access_token||!values.refresh_token)throw new CloudError(expiredLinkMessage,'auth');
+    this.session={access_token:values.access_token,refresh_token:values.refresh_token,expires_at:Math.floor(Date.now()/1000)+3600};
+    try{
+      const user=await this.request('/auth/v1/user',{auth:true,retry:false});
+      if(!user?.id)throw new CloudError(expiredLinkMessage,'auth');
+      const seconds=Number(values.expires_in);const expires_in=Number.isFinite(seconds)&&seconds>0&&seconds<=86400?seconds:3600;
+      this.remember({...this.session,user,expires_at:Math.floor(Date.now()/1000)+expires_in});return user;
+    }catch(error){this.session=null;throw new CloudError(error.kind==='network'?'Could not verify the sign-in link. Check your connection and request a fresh link. Your local data is safe.':expiredLinkMessage,'auth');}
+  }
   async verify(email,token){const session=await this.request('/auth/v1/verify',{method:'POST',body:{email,token,type:'email'}});this.remember(session);return session.user;}
   async refresh(){
     if(this.refreshing)return this.refreshing;
