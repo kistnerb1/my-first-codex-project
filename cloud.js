@@ -1,4 +1,4 @@
-import {validData} from './finance.js';
+import {validData,isPossibleSampleEntry,exampleBudgets} from './finance.js';
 
 export class CloudError extends Error {
   constructor(message,kind='network'){super(message);this.kind=kind;}
@@ -108,6 +108,7 @@ export class SupabaseClient {
   }
   async write(data,revision){
     if(!validData(data)||new TextEncoder().encode(JSON.stringify(data)).length>1800000)throw new CloudError('Data is invalid or too large to synchronize. Export a local backup.','validation');
+    if(hasMarkedSamples(data))throw new CloudError('Sample data is not uploaded. Clear sample entries or edit them into your own records before syncing. Your device copy is kept.','validation');
     const owner=this.session.user.id;
     const rows=revision===null?await this.request('/rest/v1/money_workspaces',{method:'POST',body:{user_id:owner,data},auth:true}):await this.request('/rest/v1/money_workspaces?user_id=eq.'+encodeURIComponent(owner)+'&revision=eq.'+revision,{method:'PATCH',body:{data},auth:true});
     if(!Array.isArray(rows)||rows.length!==1)throw new CloudError('Another device changed the workspace. No cloud records were overwritten.','conflict');
@@ -115,6 +116,15 @@ export class SupabaseClient {
     return rows[0].revision;
   }
 }
+export function prepareCloudMigration(local){
+  if(!validData(local))throw new CloudError('Local data is invalid. Recover your backup first.','validation');
+  const data=structuredClone(local);let excluded=0;
+  for(const type of ['transactions','bills'])data[type]=data[type].filter(entry=>{if(isPossibleSampleEntry(entry,type)){excluded++;return false;}return true;});
+  for(const [category,amount] of Object.entries(data.budgets))if(local.sampleBudgets?.[category]===amount||exampleBudgets[category]===amount){delete data.budgets[category];excluded++;}
+  data.sample=false;delete data.sampleBudgets;
+  return {data,excluded};
+}
+function hasMarkedSamples(data){return data.sample===true||data.transactions.some(e=>e.isSample===true)||data.bills.some(e=>e.isSample===true)||Object.entries(data.sampleBudgets||{}).some(([c,n])=>data.budgets[c]===n);}
 export function emptyWorkspace(){return {version:1,sample:false,categories:['Groceries','Dining out','Shopping','Transport','Entertainment','Health','Income'],budgets:{},transactions:[],bills:[]};}
 const stable=value=>JSON.stringify(value,Object.keys(value).sort());
 export function mergeWorkspaces(local,cloud){

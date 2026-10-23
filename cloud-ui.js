@@ -1,4 +1,4 @@
-import {SupabaseClient,SyncEngine,validateConfig,mergeWorkspaces,emptyWorkspace,consumeAuthCallback,expiredLinkMessage,saveConnectionConfig,connectionStorageMessage} from './cloud.js';
+import {SupabaseClient,SyncEngine,validateConfig,mergeWorkspaces,emptyWorkspace,consumeAuthCallback,expiredLinkMessage,saveConnectionConfig,connectionStorageMessage,prepareCloudMigration} from './cloud.js';
 import {validData} from './finance.js';
 
 export function mountCloud({getData,setData,getLocalData,onMode,notify}){
@@ -52,11 +52,11 @@ export function mountCloud({getData,setData,getLocalData,onMode,notify}){
     if(engine?.dirty&&!confirm('Some changes are not synced. They will remain in this account’s cache on this device. Sign out?'))return;
     lock(true);engine?.stop();engine=null;let failure=false;
     try{await client?.logout();}catch{failure=true;}
-    client=null;mode(false);setData(getLocalData());lock(false);
+    client=null;mode(false);try{setData(getLocalData());}catch{setData(emptyWorkspace());notify('Original local data could not be read and was not overwritten. Recover its backup before editing local records.');lock(true);throw Error('Signed out. Original local storage needs recovery; no records were replaced.');}lock(false);
     status(failure?'error':'local',failure?'Signed out on this device, but server revocation could not be confirmed. Reconnect and sign out again to revoke the session.':'Signed out. Original local browser workspace restored; cloud records remain in Supabase.');
   });
   $('#migrate-local').onclick=()=>{
-    try{const local=getLocalData();if(!validData(local))throw Error('Local data is invalid. Recover your backup before migrating.');if(!engine?.ready||engine.dirty||engine.conflict||engine.busy)throw Error('Finish syncing or resolve the conflict before migrating.');migration=structuredClone(local);backupStarted=false;$('#migration-saved').checked=false;$('#confirm-migration').disabled=true;$('#migration-summary').textContent=`Original local workspace: ${local.transactions.length} income/expense entries, ${local.bills.length} bills, ${Object.keys(local.budgets).length} budgets. This may include fictional samples. Existing cloud records and conflicting cloud values will be kept. Original browser data will remain unchanged.`;$('#migration-dialog').showModal();}catch(e){status('error',e.message);}
+    try{const local=getLocalData();if(!validData(local))throw Error('Local data is invalid. Recover your backup before migrating.');if(!engine?.ready||engine.dirty||engine.conflict||engine.busy)throw Error('Finish syncing or resolve the conflict before migrating.');migration=structuredClone(local);backupStarted=false;$('#migration-saved').checked=false;$('#confirm-migration').disabled=true;$('#migration-summary').textContent=`Original local workspace: ${local.transactions.length} income/expense entries, ${local.bills.length} bills, ${Object.keys(local.budgets).length} budgets. Identified sample and possible legacy-example entries will be excluded from the upload. Existing cloud records and conflicting cloud values will be kept. Original browser data will remain unchanged.`;$('#migration-dialog').showModal();}catch(e){status('error',e.message);}
   };
   $('#backup-migration').onclick=()=>{if(!migration)return;download(migration,'before-cloud');backupStarted=true;$('#migration-saved').disabled=false;notify('Backup download started. Check your Downloads and open the JSON file before confirming migration.');};
   $('#migration-saved').onchange=()=>{$('#confirm-migration').disabled=!(backupStarted&&$('#migration-saved').checked);};
@@ -66,9 +66,11 @@ export function mountCloud({getData,setData,getLocalData,onMode,notify}){
     if(!migration||!backupStarted||!$('#migration-saved').checked||!engine?.ready)throw Error('Download and confirm your local backup first.');
     if(engine.dirty||engine.conflict||engine.busy)throw Error('Finish syncing before importing.');
     await engine.pull();if(!engine.lastReadOkay)throw Error('Could not verify the latest cloud copy. No migration was uploaded. Check the connection and retry.');if(engine.dirty||engine.conflict||engine.busy)throw Error('Resolve pending changes before importing.');
-    const merged=mergeWorkspaces(migration,engine.data);
-    if(!confirm(`Upload this local backup into the cloud account ${client.session.user.email}? ${merged.conflicts.length} conflicting records/budgets will keep their CLOUD values; originals remain in your local workspace and backup. Nothing will be removed from the local workspace.`))return;
-    engine.edit(merged.data);setData(merged.data);$('#migration-dialog').close();notify('Migration queued. Wait for “Up to date” before closing. Your original local workspace and downloaded backup are unchanged.');
+    const prepared=prepareCloudMigration(migration);
+    if(!prepared.data.transactions.length&&!prepared.data.bills.length&&!Object.keys(prepared.data.budgets).length){notify('Nothing uploaded: only sample/possible example data or an empty workspace was found. Original local records and backup are kept.');$('#migration-dialog').close();return;}
+    const merged=mergeWorkspaces(prepared.data,engine.data);
+    if(!confirm(`Upload this local backup into the cloud account ${client.session.user.email}? ${prepared.excluded} sample/possible example entries are excluded. ${merged.conflicts.length} conflicting records/budgets will keep their CLOUD values; originals remain in your local workspace and backup. Nothing will be removed from the local workspace.`))return;
+    engine.edit(merged.data);setData(merged.data);$('#migration-dialog').close();notify(`Migration queued; ${prepared.excluded} sample/possible example entries excluded. Wait for “Up to date” before closing. Original local data and backup are unchanged.`);
   });};
   $('#resolve-cloud').onclick=()=>{
     if(!engine||engine.busy){status('error','Wait for the current request to finish.');return;}

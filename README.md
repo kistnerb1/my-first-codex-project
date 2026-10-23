@@ -59,3 +59,11 @@ The earlier local-only privacy report is preserved in [SECURITY.md](SECURITY.md)
 6. Open the same private forwarded address on iPhone while signed into GitHub. Configure the same Supabase project and log in with the same email. Stop the Codespace when finished to conserve its free allowance.
 
 This requires no Node.js installation or project download on Windows. The review branch workflow cannot deploy from `supabase-review`, even if manually requested. No merge or Pages deployment is part of review-branch creation.
+
+## Production-readiness review
+
+The current recommendation is **NO-GO until the remaining hosted security checks are completed**. See [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md). Same-account live sync was confirmed by the user; two-account live isolation is still pending. The final-review changes are local only.
+
+Migration now excludes marked and recognizable legacy sample records/budgets; originals stay in the local workspace and backup. An entirely sample-only migration makes no financial upload. Unknown or edited unmarked examples cannot be recognized with certainty: review your backup before migrating. Cloud transport also rejects explicitly marked samples.
+
+Run `npm run test:production` for the isolated desktop/mouse test using the exact GitHub Pages origin and `/my-first-codex-project/` path. All responses are intercepted; this does not deploy or change the live site. On cloud Linux set `MMCC_CHROMIUM_PATH=/usr/bin/chromium` when using system Chromium.

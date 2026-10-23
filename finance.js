@@ -22,3 +22,19 @@ export function clearSamples(data,selection){
  next.sample=false;
  return next;
 }
+
+export const exampleBudgets=Object.freeze({Groceries:600,'Dining out':250,Shopping:300,Transport:200,Entertainment:150,Health:100});
+const exampleTransactions=[
+ ['Monthly salary',5800,'01','Income','income'],['Freelance project',650,'05','Income','income'],
+ ['Whole Foods Market',128.5,'03','Groceries','expense'],['Weekly groceries',216.75,'08','Groceries','expense'],
+ ['Neighborhood coffee',24,'04','Dining out','expense'],['Dinner with friends',86,'07','Dining out','expense'],
+ ['New everyday essentials',182,'06','Shopping','expense'],['Gas & transit',95,'09','Transport','expense'],
+ ['Movie night',42,'10','Entertainment','expense'],['Pharmacy',35,'11','Health','expense']
+];
+const exampleBills=[['Rent',1650,'01',true],['Internet',65,'12',true],['Electricity',92,'20',false],['Car insurance',135,'25',false]];
+// Legacy unmarked matches are ambiguous: exclude from migration, never delete locally.
+export function isPossibleSampleEntry(entry,type){
+ if(entry.isSample===true)return true;
+ const day=entry.date.slice(8);
+ return type==='transactions'?exampleTransactions.some(([name,amount,d,category,t])=>entry.name===name&&entry.amount===amount&&day===d&&entry.category===category&&entry.type===t):exampleBills.some(([name,amount,d,paid])=>entry.name===name&&entry.amount===amount&&day===d&&entry.paid===paid);
+}

@@ -9,7 +9,8 @@
     "build": "node scripts/build.mjs",
     "test:browser": "npm run build && node tests/connection-browser.mjs && node tests/cloud-browser.mjs",
     "test:live": "node scripts/check-hosted-rls.mjs",
-    "test:connection": "npm run build && node tests/connection-browser.mjs"
+    "test:connection": "npm run build && node tests/connection-browser.mjs",
+    "test:production": "npm run build && node tests/cloud-browser.mjs --production-origin --desktop"
   },
   "type": "module",
   "devDependencies": {

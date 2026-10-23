@@ -37,6 +37,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Build and test browser integration (simulated Supabase)
         run: npm run test:browser
+      - name: Verify production URL path and redirects (isolated simulation)
+        run: node tests/cloud-browser.mjs --production-origin --desktop
       - name: Upload website only
         uses: actions/upload-pages-artifact@v3
         with:

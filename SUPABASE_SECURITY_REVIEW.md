@@ -49,7 +49,7 @@ The app does not rely on a UI filter as its security boundary. Conditional write
 | Production build at `/my-first-codex-project/` | Passed | Whitelist contains only six frontend files plus `.nojekyll` |
 | Dependency audit | Passed at review time | `npm audit --audit-level=high` found no reported vulnerabilities; not a guarantee against unknown issues |
 
-The automated unit/RLS suite currently has **35 passing tests**. Browser tests run separately. Test records, fake tokens, and email addresses in code are deliberately fictional. No actual financial records, Supabase secret keys, passwords, or live session tokens were added. Dependency versions are pinned in `package-lock.json`; test packages are not copied into the production artifact.
+The automated unit/RLS suite currently has **37 passing tests**. Browser tests run separately. Test records, fake tokens, and email addresses in code are deliberately fictional. No actual financial records, Supabase secret keys, passwords, or live session tokens were added. Dependency versions are pinned in `package-lock.json`; test packages are not copied into the production artifact.
 
 ## Hosted checks completed after project setup
 
@@ -97,3 +97,7 @@ Unit and intercepted-browser coverage includes valid fragment returns, URL clean
 ## Mobile connection setup repair
 
 See [MOBILE_CONNECTION_REVIEW.md](MOBILE_CONNECTION_REVIEW.md) for reproduced input/error/storage defects and device-test limits. Saving now uses a native submit form with inline validation and read-back verification before activation. Thirteen phone-sized Chromium setup scenarios pass, in addition to existing auth/sync/migration regressions. The actual iPhone trigger remains unconfirmed; WebKit download was blocked by the environment. No financial data, policies, or migrations changed, and this repair is not pushed until approved.
+
+## Final production review
+
+See [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) for the current NO-GO recommendation and evidence. The user confirmed live same-account computer-to-iPhone sign-in/sync, but two different hosted users have not been tested against each other. Sample migration now excludes marked/recognizable legacy examples; the transport blocks marked samples. A production-origin desktop test exercises the exact Pages path and authentication redirect in an isolated simulation. No changes from this final review have been pushed, merged, or deployed.

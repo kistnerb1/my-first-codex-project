@@ -1,10 +1,10 @@
-// Opt-in destructive FIXTURE test: disposable Supabase project + two empty test users only.
+// Opt-in destructive FIXTURE test: target Supabase project + two new empty disposable test users only.
 // Runtime env credentials are never printed or written to files.
 import assert from 'node:assert/strict';
 import {SupabaseClient,validateConfig,emptyWorkspace} from '../cloud.js';
 const names=['SUPABASE_URL','SUPABASE_PUBLISHABLE_KEY','MMCC_TEST_USER_A_ACCESS_TOKEN','MMCC_TEST_USER_B_ACCESS_TOKEN'];
 if(process.env.MMCC_ALLOW_TEST_WRITES!=='yes'||names.some(name=>!process.env[name])){
- console.error('Not run: requires a disposable test project, two empty test users, public connection config, two runtime access tokens, and MMCC_ALLOW_TEST_WRITES=yes. Read SUPABASE_SETUP.md.');process.exit(1);
+ console.error('Not run: requires the target test project, two empty disposable test users, public connection config, two runtime access tokens, and MMCC_ALLOW_TEST_WRITES=yes. Read SUPABASE_SETUP.md.');process.exit(1);
 }
 const config=validateConfig(process.env.SUPABASE_URL,process.env.SUPABASE_PUBLISHABLE_KEY);
 const storage={getItem:()=>null,setItem(){},removeItem(){}};
